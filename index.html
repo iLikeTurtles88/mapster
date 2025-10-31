@@ -1,618 +1,736 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Worldle Pro Max - Le Défi Géographique Ultime</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Worldle Pro Max - Le Défi Géographique Ultime</title>
     
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    
-    <!-- Google Font "Poppins" -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 
-    <style>
-        :root {
-            --bg-light: #f4f7fa; --text-light: #212529; --card-light: #fff;
-            --bg-dark: #121212; --text-dark: #e0e0e0; --card-dark: #1e1e1e;
-            --primary: #007bff; --success: #28a745; --danger: #dc3545; --warning: #ffc107; --secondary: #6c757d;
-            --border-color-light: #dee2e6; --border-color-dark: #444;
+<!-- Google Font "Poppins" -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+<style>
+    :root {
+        --bg-light: #f4f7fa; --text-light: #212529; --card-light: #fff;
+        --bg-dark: #121212; --text-dark: #e0e0e0; --card-dark: #1e1e1e;
+        --primary: #007bff; --success: #28a745; --danger: #dc3545; --warning: #ffc107; --secondary: #6c757d;
+        --border-color-light: #dee2e6; --border-color-dark: #444;
+    }
+    body {
+        font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        background-color: var(--bg-light); color: var(--text-light);
+        margin: 0; padding: 15px; display: flex; justify-content: center;
+        align-items: flex-start; min-height: 100vh; transition: background-color 0.3s, color 0.3s;
+    }
+    body.dark-mode { --bg-light: var(--bg-dark); --text-light: var(--text-dark); --card-light: var(--card-dark); --border-color-light: var(--border-color-dark); }
+    .hidden { display: none !important; }
+    .container {
+        width: 95%; max-width: 1200px; background-color: var(--card-light);
+        padding: 20px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+        transition: background-color 0.3s;
+    }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color-light); padding-bottom: 15px; margin-bottom: 20px; }
+    .header h1 { margin: 0; font-size: clamp(1.5em, 4vw, 2em); font-weight: 700; }
+    #theme-toggle-btn { background: none; border: 1px solid var(--border-color-light); border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 1.2em; display: flex; justify-content: center; align-items: center; transition: background-color 0.2s, transform 0.2s; }
+    #theme-toggle-btn:hover { background-color: rgba(0,0,0,0.05); transform: rotate(15deg); }
+    .game-controls { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px; padding: 15px; background-color: rgba(0,0,0,0.02); border-radius: 8px; margin-bottom: 20px; }
+    .control-item { text-align: center; }
+    #score, #timer { font-size: 1.3em; font-weight: 600; margin: 0; }
+    
+    /* --- STYLE AJOUTÉ --- */
+    #timer-info {
+        display: block;
+        font-size: 11px;
+        font-style: italic;
+        color: var(--secondary);
+        margin-top: -5px;
+        margin-bottom: 5px;
+        transition: opacity 0.4s, max-height 0.4s, margin 0.4s;
+        max-height: 20px; /* Hauteur suffisante pour le texte */
+        opacity: 1;
+        overflow: hidden;
+    }
+    #timer-info.is-hidden {
+        opacity: 0;
+        max-height: 0;
+        margin-top: 0;
+        margin-bottom: 0;
+    }
+    /* --- FIN DE L'AJOUT --- */
+
+    .control-item span { font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.5px; color: var(--secondary); }
+    .action-buttons { display: flex; gap: 10px; }
+    .action-buttons button { padding: 10px 15px; font-size: 0.9em; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; color: white; }
+    .action-buttons button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+    #hint-btn { background-color: var(--warning); color: #212529; }
+    #abandon-btn { background-color: var(--secondary); }
+    #reset-btn { background-color: var(--danger); }
+    #input-area { text-align: center; margin-bottom: 20px; min-height: 50px; display: flex; justify-content: center; align-items: center;}
+    #target-country-prompt { font-size: 1.4em; font-weight: 600; }
+    #country-input { padding: 14px; width: 90%; max-width: 450px; border: 2px solid var(--border-color-light); border-radius: 8px; font-size: 1.1em; background-color: var(--card-light); color: var(--text-light); transition: box-shadow 0.2s, border-color 0.2s; }
+    #country-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.1); }
+    .correct-guess { animation: flash-green 0.5s; }
+    .wrong-guess { animation: flash-red 0.5s; }
+    @keyframes flash-green { 0%, 100% { border-color: var(--success); box-shadow: 0 0 0 4px rgba(40, 167, 69, 0); } 50% { box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.3); } }
+    @keyframes flash-red { 0%, 100% { border-color: var(--danger); box-shadow: 0 0 0 4px rgba(220, 53, 69, 0); } 50% { box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.3); } }
+    #map { height: 50vh; min-height: 300px; max-height: 500px; width: 100%; border-radius: 12px; margin-bottom: 20px; background-color: #e8e8e8; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+    .dark-mode #map { background-color: #333; }
+    #guessed-countries-container h2 { margin-top: 20px; border-top: 1px solid var(--border-color-light); padding-top: 20px; }
+    #guessed-countries-list { list-style-type: none; padding: 0; column-count: 2; column-gap: 20px; text-align: left; }
+    #guessed-countries-list h3 { column-span: all; margin-top: 20px; margin-bottom: 8px; font-size: 1.1em; font-weight: 700; border-bottom: 2px solid var(--primary); padding-bottom: 5px; color: var(--primary);}
+    #guessed-countries-list li { margin-left: 10px; cursor: pointer; padding: 3px 0; transition: color 0.2s; }
+    #guessed-countries-list li:hover { color: var(--primary); }
+    .found-country-final { color: var(--success); font-weight: 600; }
+    .missed-country-final { color: var(--text-light); opacity: 0.7; }
+    /* Modals */
+    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1050; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+    .modal-overlay.visible { opacity: 1; pointer-events: auto; }
+    .modal-content { background-color: var(--card-light); padding: 30px; border-radius: 12px; text-align: center; max-width: 90%; width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.3s ease; }
+    .modal-overlay.visible .modal-content { transform: scale(1); }
+    .modal-content h2 { margin-top: 0; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; }
+    .modal-content .icon { font-size: 2.5em; }
+    .modal-content button { background-color: var(--primary); color: white; padding: 12px 25px; font-size: 1.1em; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; margin-top: 20px; transition: background-color 0.2s, transform 0.2s; }
+    .modal-content button:hover { transform: translateY(-2px); }
+    .modal-content button:disabled { background-color: var(--secondary); cursor: not-allowed; }
+    .modal-buttons { display: flex; justify-content: center; gap: 15px; margin-top: 25px; }
+    .modal-buttons button { min-width: 120px; }
+    #confirm-btn { background-color: var(--danger); }
+    #cancel-btn { background-color: var(--secondary); }
+    /* Menu de démarrage */
+    .settings-form-group { margin-bottom: 20px; text-align: left; }
+    .settings-form-group label { display: block; margin-bottom: 8px; font-weight: 600; }
+    .settings-form-group select { width: 100%; padding: 10px; font-size: 1em; border-radius: 8px; border: 1px solid var(--border-color-light); background-color: var(--card-light); color: var(--text-light); }
+    .tabs { display: flex; border-bottom: 2px solid var(--border-color-light); margin-bottom: 20px; }
+    .tab { padding: 10px 20px; cursor: pointer; border-bottom: 3px solid transparent; font-weight: 600; color: var(--secondary); transition: border-color 0.2s, color 0.2s; }
+    .tab.active { border-bottom-color: var(--primary); color: var(--text-light); }
+    #stats-content table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    #stats-content th, #stats-content td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color-light); }
+    #stats-content th { font-weight: 600; }
+    /* Info pays */
+    #country-info-modal-content { text-align: left; }
+    #country-info-modal-content img { max-width: 100px; border: 1px solid var(--border-color-light); }
+    
+    /* --- NOUVEAUX STYLES POUR LE PANNEAU LATÉRAL --- */
+    #toggle-guessed-list-btn {
+        display: none; /* Caché par défaut */
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        width: 50px;
+        height: 50px;
+        background-color: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        font-size: 24px;
+        cursor: pointer;
+        z-index: 1001;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        justify-content: center;
+        align-items: center;
+    }
+    #panel-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        z-index: 999;
+    }
+
+    /* Responsive */
+    @media (min-width: 769px) { #guessed-countries-list { column-count: 4; } }
+    @media (max-width: 768px) {
+        .game-controls { flex-direction: column; align-items: stretch; } 
+        .action-buttons { flex-direction: row; justify-content: center; } 
+        #guessed-countries-list { column-count: 1; }
+        
+        /* Afficher le bouton de bascule sur mobile pendant une partie */
+        #game-zone:not(.hidden) + #toggle-guessed-list-btn {
+            display: flex;
         }
-        body {
-            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            background-color: var(--bg-light); color: var(--text-light);
-            margin: 0; padding: 15px; display: flex; justify-content: center;
-            align-items: flex-start; min-height: 100vh; transition: background-color 0.3s, color 0.3s;
+        
+        /* Transformer la liste en panneau latéral */
+        #guessed-countries-container {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 280px;
+            height: 100vh;
+            background-color: var(--card-light);
+            box-shadow: -5px 0 15px rgba(0,0,0,0.2);
+            transform: translateX(100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 1000;
+            overflow-y: auto;
+            margin-top: 0;
+            padding: 20px;
+            border-top: none;
         }
-        body.dark-mode { --bg-light: var(--bg-dark); --text-light: var(--text-dark); --card-light: var(--card-dark); --border-color-light: var(--border-color-dark); }
-        .hidden { display: none !important; }
-        .container {
-            width: 95%; max-width: 1200px; background-color: var(--card-light);
-            padding: 20px; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.1);
-            transition: background-color 0.3s;
+        #guessed-countries-container.open {
+            transform: translateX(0);
         }
-        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color-light); padding-bottom: 15px; margin-bottom: 20px; }
-        .header h1 { margin: 0; font-size: clamp(1.5em, 4vw, 2em); font-weight: 700; }
-        #theme-toggle-btn { background: none; border: 1px solid var(--border-color-light); border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 1.2em; display: flex; justify-content: center; align-items: center; transition: background-color 0.2s, transform 0.2s; }
-        #theme-toggle-btn:hover { background-color: rgba(0,0,0,0.05); transform: rotate(15deg); }
-        .game-controls { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 20px; padding: 15px; background-color: rgba(0,0,0,0.02); border-radius: 8px; margin-bottom: 20px; }
-        .control-item { text-align: center; }
-        #score, #timer { font-size: 1.3em; font-weight: 600; margin: 0; }
-        .control-item span { font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.5px; color: var(--secondary); }
-        .action-buttons { display: flex; gap: 10px; }
-        .action-buttons button { padding: 10px 15px; font-size: 0.9em; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; color: white; }
-        .action-buttons button:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        #hint-btn { background-color: var(--warning); color: #212529; }
-        #abandon-btn { background-color: var(--secondary); }
-        #reset-btn { background-color: var(--danger); }
-        #input-area { text-align: center; margin-bottom: 20px; min-height: 50px; display: flex; justify-content: center; align-items: center;}
-        #target-country-prompt { font-size: 1.4em; font-weight: 600; }
-        #country-input { padding: 14px; width: 90%; max-width: 450px; border: 2px solid var(--border-color-light); border-radius: 8px; font-size: 1.1em; background-color: var(--card-light); color: var(--text-light); transition: box-shadow 0.2s, border-color 0.2s; }
-        #country-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.1); }
-        .correct-guess { animation: flash-green 0.5s; }
-        .wrong-guess { animation: flash-red 0.5s; }
-        @keyframes flash-green { 0%, 100% { border-color: var(--success); box-shadow: 0 0 0 4px rgba(40, 167, 69, 0); } 50% { box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.3); } }
-        @keyframes flash-red { 0%, 100% { border-color: var(--danger); box-shadow: 0 0 0 4px rgba(220, 53, 69, 0); } 50% { box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.3); } }
-        #map { height: 50vh; min-height: 300px; max-height: 500px; width: 100%; border-radius: 12px; margin-bottom: 20px; background-color: #e8e8e8; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .dark-mode #map { background-color: #333; }
-        #guessed-countries-container h2 { margin-top: 20px; border-top: 1px solid var(--border-color-light); padding-top: 20px; }
-        #guessed-countries-list { list-style-type: none; padding: 0; column-count: 2; column-gap: 20px; text-align: left; }
-        #guessed-countries-list h3 { column-span: all; margin-top: 20px; margin-bottom: 8px; font-size: 1.1em; font-weight: 700; border-bottom: 2px solid var(--primary); padding-bottom: 5px; color: var(--primary);}
-        #guessed-countries-list li { margin-left: 10px; cursor: pointer; padding: 3px 0; transition: color 0.2s; }
-        #guessed-countries-list li:hover { color: var(--primary); }
-        .found-country-final { color: var(--success); font-weight: 600; }
-        .missed-country-final { color: var(--text-light); opacity: 0.7; }
-        /* Modals */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
-        .modal-overlay.visible { opacity: 1; pointer-events: auto; }
-        .modal-content { background-color: var(--card-light); padding: 30px; border-radius: 12px; text-align: center; max-width: 90%; width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transform: scale(0.95); transition: transform 0.3s ease; }
-        .modal-overlay.visible .modal-content { transform: scale(1); }
-        .modal-content h2 { margin-top: 0; display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 700; }
-        .modal-content .icon { font-size: 2.5em; }
-        .modal-content button { background-color: var(--primary); color: white; padding: 12px 25px; font-size: 1.1em; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; margin-top: 20px; transition: background-color 0.2s, transform 0.2s; }
-        .modal-content button:hover { transform: translateY(-2px); }
-        .modal-content button:disabled { background-color: var(--secondary); cursor: not-allowed; }
-        .modal-buttons { display: flex; justify-content: center; gap: 15px; margin-top: 25px; }
-        .modal-buttons button { min-width: 120px; }
-        #confirm-btn { background-color: var(--danger); }
-        #cancel-btn { background-color: var(--secondary); }
-        /* Menu de démarrage */
-        .settings-form-group { margin-bottom: 20px; text-align: left; }
-        .settings-form-group label { display: block; margin-bottom: 8px; font-weight: 600; }
-        .settings-form-group select { width: 100%; padding: 10px; font-size: 1em; border-radius: 8px; border: 1px solid var(--border-color-light); background-color: var(--card-light); color: var(--text-light); }
-        .tabs { display: flex; border-bottom: 2px solid var(--border-color-light); margin-bottom: 20px; }
-        .tab { padding: 10px 20px; cursor: pointer; border-bottom: 3px solid transparent; font-weight: 600; color: var(--secondary); transition: border-color 0.2s, color 0.2s; }
-        .tab.active { border-bottom-color: var(--primary); color: var(--text-light); }
-        #stats-content table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        #stats-content th, #stats-content td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color-light); }
-        #stats-content th { font-weight: 600; }
-        /* Info pays */
-        #country-info-modal-content { text-align: left; }
-        #country-info-modal-content img { max-width: 100px; border: 1px solid var(--border-color-light); }
-        /* Responsive */
-        @media (min-width: 768px) { #guessed-countries-list { column-count: 4; } }
-        @media (max-width: 768px) { .game-controls { flex-direction: column; align-items: stretch; } .action-buttons { flex-direction: row; justify-content: center; } }
-        @media (max-width: 480px) { #guessed-countries-list { column-count: 1; } }
-    </style>
+        #guessed-countries-container h2 {
+            border-top: none;
+            padding-top: 0;
+            margin-top: 0;
+        }
+    }
+    @media (max-width: 480px) {
+        #guessed-countries-list { column-count: 1; } 
+    }
+</style>
+
 </head>
 <body>
-    <div class="container">
-        <!-- HEADER -->
-        <div class="header">
-            <h1>Worldle Pro Max</h1>
-            <div>
-                <button id="theme-toggle-btn">🌙</button>
+<div class="container">
+<!-- HEADER -->
+<div class="header">
+<h1>Worldle Pro Max</h1>
+<div>
+<button id="theme-toggle-btn">🌙</button>
+</div>
+</div>
+    
+<!-- ZONE DE JEU -->
+    <div id="game-zone" class="hidden">
+        <p id="game-description"></p>
+        <div class="game-controls">
+            <div class="control-item"><p id="score">0 / 0</p><span>Score</span></div>
+            <!-- --- MODIFICATION HTML --- -->
+            <div class="control-item">
+                <p id="timer">00:00</p>
+                <small id="timer-info">Le chrono démarre à la 1ère réponse</small>
+                <span>Temps</span>
+            </div>
+            <!-- --- FIN DE LA MODIFICATION --- -->
+            <div class="action-buttons">
+                <button id="hint-btn">Indice (+30s)</button>
+                <button id="abandon-btn">Abandonner</button>
+                <button id="reset-btn">Nouvelle Partie</button>
             </div>
         </div>
+        <div id="input-area">
+            <p id="target-country-prompt" class="hidden"></p>
+            <input type="text" id="country-input" autocomplete="off" autocorrect="off" spellcheck="false">
+        </div>
+        <div id="map"></div>
+        <div id="guessed-countries-container">
+            <h2>Pays :</h2>
+            <div id="guessed-countries-list"></div>
+        </div>
+    </div>
+    
+    <!-- NOUVEAUX ÉLÉMENTS POUR LE PANNEAU LATÉRAL -->
+    <button id="toggle-guessed-list-btn">☰</button>
+    <div id="panel-overlay" class="hidden"></div>
 
-        <!-- ZONE DE JEU -->
-        <div id="game-zone" class="hidden">
-            <p id="game-description"></p>
-            <div class="game-controls">
-                <div class="control-item"><p id="score">0 / 0</p><span>Score</span></div>
-                <div class="control-item"><p id="timer">00:00</p><span>Temps</span></div>
-                <div class="action-buttons">
-                    <button id="hint-btn">Indice (+30s)</button>
-                    <button id="abandon-btn">Abandonner</button>
-                    <button id="reset-btn">Nouvelle Partie</button>
-                </div>
+    <!-- MODAL MENU DE DÉMARRAGE -->
+    <div id="start-modal" class="modal-overlay visible">
+        <div class="modal-content">
+            <div class="tabs">
+                <div class="tab active" data-tab="settings">Jouer</div>
+                <div class="tab" data-tab="stats">Statistiques</div>
             </div>
-            <div id="input-area">
-                <p id="target-country-prompt" class="hidden"></p>
-                <input type="text" id="country-input" autocomplete="off" autocorrect="off" spellcheck="false">
-            </div>
-            <div id="map"></div>
-            <div id="guessed-countries-container">
-                <h2>Pays :</h2>
-                <div id="guessed-countries-list"></div>
-            </div>
-        </div>
-
-        <!-- MODAL MENU DE DÉMARRAGE -->
-        <div id="start-modal" class="modal-overlay visible">
-            <div class="modal-content">
-                <div class="tabs">
-                    <div class="tab active" data-tab="settings">Jouer</div>
-                    <div class="tab" data-tab="stats">Statistiques</div>
+            <div id="settings-content">
+                <h2>Configuration de la Partie</h2>
+                <div class="settings-form-group">
+                    <label for="game-mode">Région</label>
+                    <select id="game-mode">
+                        <option value="Monde">Monde entier</option>
+                        <option value="Europe">Europe</option>
+                        <option value="Asia">Asie</option>
+                        <option value="Africa">Afrique</option>
+                        <option value="Americas">Amériques</option>
+                        <option value="Oceania">Océanie</option>
+                    </select>
                 </div>
-                <div id="settings-content">
-                    <h2>Configuration de la Partie</h2>
-                    <div class="settings-form-group">
-                        <label for="game-mode">Région</label>
-                        <select id="game-mode">
-                            <option value="Monde">Monde entier</option>
-                            <option value="Europe">Europe</option>
-                            <option value="Asia">Asie</option>
-                            <option value="Africa">Afrique</option>
-                            <option value="Americas">Amériques</option>
-                            <option value="Oceania">Océanie</option>
-                        </select>
-                    </div>
-                    <div class="settings-form-group">
-                        <label for="game-difficulty">Difficulté</label>
-                        <select id="game-difficulty">
-                            <option value="Normal">Normal (Chronomètre)</option>
-                            <option value="Difficile">Difficile (15 min)</option>
-                        </select>
-                    </div>
-                     <div class="settings-form-group">
-                        <label for="game-type">Type de jeu</label>
-                        <select id="game-type">
-                            <option value="Type">Deviner en tapant</option>
-                            <option value="Click">Cliquez pour deviner</option>
-                        </select>
-                    </div>
-                    <button id="start-game-btn" disabled>Chargement des données...</button>
+                <div class="settings-form-group">
+                    <label for="game-difficulty">Difficulté</label>
+                    <select id="game-difficulty">
+                        <option value="Normal">Normal (Chronomètre)</option>
+                        <option value="Difficile">Difficile (15 min)</option>
+                    </select>
                 </div>
-                <div id="stats-content" class="hidden">
-                    <h2>Meilleurs Temps</h2>
-                    <table><thead><tr><th>Mode</th><th>Temps</th></tr></thead><tbody></tbody></table>
+                 <div class="settings-form-group">
+                    <label for="game-type">Type de jeu</label>
+                    <select id="game-type">
+                        <!-- MODIFICATION DES LIBELLÉS ICI -->
+                        <option value="Type">Retrouvez le nom de chaque pays</option>
+                        <option value="Click">Retrouvez l'emplacement de chaque pays</option>
+                    </select>
                 </div>
+                <button id="start-game-btn" disabled>Chargement des données...</button>
             </div>
-        </div>
-        
-        <!-- AUTRES MODALS -->
-        <div id="end-game-modal" class="modal-overlay"><div class="modal-content">
-            <h2><span class="icon">🏆</span>Félicitations !</h2>
-            <p>Vous avez trouvé tous les pays en <strong id="final-time"></strong>.</p>
-            <div class="modal-buttons">
-                <button id="play-again-btn">Rejouer</button>
-            </div>
-        </div></div>
-        <div id="country-info-modal" class="modal-overlay"><div class="modal-content" id="country-info-modal-content"></div></div>
-        
-        <div id="confirm-modal" class="modal-overlay">
-            <div class="modal-content">
-                <h2><span class="icon">⚠️</span>Attention</h2>
-                <p id="confirm-message">Êtes-vous sûr ?</p>
-                <div class="modal-buttons">
-                    <button id="cancel-btn">Annuler</button>
-                    <button id="confirm-btn">Confirmer</button>
-                </div>
+            <div id="stats-content" class="hidden">
+                <h2>Meilleurs Temps</h2>
+                <table><thead><tr><th>Mode</th><th>Temps</th></tr></thead><tbody></tbody></table>
             </div>
         </div>
     </div>
+    
+    <!-- AUTRES MODALS -->
+    <div id="end-game-modal" class="modal-overlay"><div class="modal-content">
+        <h2><span class="icon">🏆</span>Félicitations !</h2>
+        <p>Vous avez trouvé tous les pays en <strong id="final-time"></strong>.</p>
+        <div class="modal-buttons">
+            <button id="play-again-btn">Rejouer</button>
+        </div>
+    </div></div>
+    <div id="country-info-modal" class="modal-overlay"><div class="modal-content" id="country-info-modal-content"></div></div>
+    
+    <div id="confirm-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2><span class="icon">⚠️</span>Attention</h2>
+            <p id="confirm-message">Êtes-vous sûr ?</p>
+            <div class="modal-buttons">
+                <button id="cancel-btn">Annuler</button>
+                <button id="confirm-btn">Confirmer</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-     
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // --- DOM Elements ---
-        const themeToggleBtn = document.getElementById('theme-toggle-btn');
-        const gameZone = document.getElementById('game-zone');
-        const startModal = document.getElementById('start-modal');
-        const startGameBtn = document.getElementById('start-game-btn');
-        const countryInput = document.getElementById('country-input');
-        const scoreElement = document.getElementById('score');
-        const timerElement = document.getElementById('timer');
-        const hintBtn = document.getElementById('hint-btn');
-        const abandonBtn = document.getElementById('abandon-btn');
-        const resetBtn = document.getElementById('reset-btn');
-        const mapElement = document.getElementById('map');
-        const guessedList = document.getElementById('guessed-countries-list');
-        const endGameModal = document.getElementById('end-game-modal');
-        const playAgainBtn = document.getElementById('play-again-btn');
-        const infoModal = document.getElementById('country-info-modal');
-        const infoModalContent = document.getElementById('country-info-modal-content');
-        const targetCountryPrompt = document.getElementById('target-country-prompt');
-        const confirmModal = document.getElementById('confirm-modal');
-        const confirmMessage = document.getElementById('confirm-message');
-        const confirmBtn = document.getElementById('confirm-btn');
-        const cancelBtn = document.getElementById('cancel-btn');
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+ 
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- DOM Elements ---
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    const gameZone = document.getElementById('game-zone');
+    const startModal = document.getElementById('start-modal');
+    const startGameBtn = document.getElementById('start-game-btn');
+    const countryInput = document.getElementById('country-input');
+    const scoreElement = document.getElementById('score');
+    const timerElement = document.getElementById('timer');
+    const timerInfo = document.getElementById('timer-info'); // --- AJOUT JS ---
+    const hintBtn = document.getElementById('hint-btn');
+    const abandonBtn = document.getElementById('abandon-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const mapElement = document.getElementById('map');
+    const guessedListContainer = document.getElementById('guessed-countries-container');
+    const guessedList = document.getElementById('guessed-countries-list');
+    const endGameModal = document.getElementById('end-game-modal');
+    const playAgainBtn = document.getElementById('play-again-btn');
+    const infoModal = document.getElementById('country-info-modal');
+    const infoModalContent = document.getElementById('country-info-modal-content');
+    const targetCountryPrompt = document.getElementById('target-country-prompt');
+    const confirmModal = document.getElementById('confirm-modal');
+    const confirmMessage = document.getElementById('confirm-message');
+    const confirmBtn = document.getElementById('confirm-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
+    // Nouveaux éléments pour le panneau latéral
+    const toggleGuessedListBtn = document.getElementById('toggle-guessed-list-btn');
+    const panelOverlay = document.getElementById('panel-overlay');
+    
+    // --- State ---
+    let map;
+    let tileLayer;
+    let geojsonLayer;
+    let allCountriesData = [];
+    let geoJSONFeatures = [];
+    let isDataReady = false;
+    let currentGameCountries = [];
+    let guessedCountries = new Set();
+    let gameState = { mode: 'Monde', difficulty: 'Normal', type: 'Type', targetCountry: null };
+    let timerInterval;
+    let secondsElapsed = 0;
+    let userStats = {};
+
+    const continentTranslations = { 'Africa': 'Afrique', 'Americas': 'Amériques', 'Asia': 'Asie', 'Europe': 'Europe', 'Oceania': 'Océanie' };
+
+    // --- Audio ---
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const playSound = (type) => {
+        if (!audioContext || audioContext.state === 'suspended') audioContext.resume();
+        if (!audioContext) return;
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+        gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01);
+        if (type === 'correct') { oscillator.frequency.value = 880; }
+        else if (type === 'wrong') { oscillator.frequency.value = 220; oscillator.type = 'square';}
+        else if (type === 'win') { oscillator.frequency.value = 1046.5; } // C6
+        oscillator.start(audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + (type === 'win' ? 0.5 : 0.2));
+        oscillator.stop(audioContext.currentTime + (type === 'win' ? 0.5 : 0.2));
+    };
+    
+    // --- Setup ---
+    const initMap = () => {
+        if (map) map.remove();
+        map = L.map(mapElement, { minZoom: 1, maxZoom: 10 }).setView([20, 0], 2);
+        switchToUnlabeledMap();
+    };
+
+    const loadData = async () => {
+        try {
+            const [geoData, countryData] = await Promise.all([
+                fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json').then(res => res.json()),
+                fetch('https://restcountries.com/v3.1/all?fields=name,translations,cca3,region,capital,population,flags').then(res => res.json())
+            ]);
+            geoJSONFeatures = geoData.features;
+            allCountriesData = countryData
+                .filter(c => geoJSONFeatures.some(f => f.id === c.cca3) && c.capital && c.capital.length > 0)
+                .map(c => ({
+                    code: c.cca3, commonName: c.name.common, frenchName: c.translations.fra.common,
+                    region: c.region, capital: c.capital[0], population: c.population, flagUrl: c.flags.svg
+                }));
+            isDataReady = true;
+            startGameBtn.disabled = false;
+            startGameBtn.textContent = 'Lancer la partie';
+        } catch (e) {
+            startGameBtn.textContent = 'Erreur de chargement';
+            alert("Erreur de chargement des données. Veuillez rafraîchir la page.");
+        }
+    };
+
+    // --- Game Flow ---
+    const startGame = () => {
+        if (!isDataReady) return;
         
-        // --- State ---
-        let map;
-        let tileLayer;
-        let geojsonLayer;
-        let allCountriesData = [];
-        let geoJSONFeatures = [];
-        let isDataReady = false;
-        let currentGameCountries = [];
-        let guessedCountries = new Set();
-        let gameState = { mode: 'Monde', difficulty: 'Normal', type: 'Type', targetCountry: null };
-        let timerInterval;
-        let secondsElapsed = 0;
-        let userStats = {};
-
-        const continentTranslations = { 'Africa': 'Afrique', 'Americas': 'Amériques', 'Asia': 'Asie', 'Europe': 'Europe', 'Oceania': 'Océanie' };
-
-        // --- Audio ---
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const playSound = (type) => {
-            if (!audioContext || audioContext.state === 'suspended') audioContext.resume();
-            if (!audioContext) return;
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01);
-            if (type === 'correct') { oscillator.frequency.value = 880; }
-            else if (type === 'wrong') { oscillator.frequency.value = 220; oscillator.type = 'square';}
-            else if (type === 'win') { oscillator.frequency.value = 1046.5; } // C6
-            oscillator.start(audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + (type === 'win' ? 0.5 : 0.2));
-            oscillator.stop(audioContext.currentTime + (type === 'win' ? 0.5 : 0.2));
+        const settings = {
+            mode: document.getElementById('game-mode').value,
+            difficulty: document.getElementById('game-difficulty').value,
+            type: document.getElementById('game-type').value,
         };
+        gameState = { ...gameState, ...settings, targetCountry: null };
+
+        gameZone.classList.remove('hidden');
+        startModal.classList.remove('visible');
         
-        // --- Setup ---
-        const initMap = () => {
-            if (map) map.remove();
-            map = L.map(mapElement, { minZoom: 1, maxZoom: 10 }).setView([20, 0], 2);
-            switchToUnlabeledMap();
-        };
+        if (!map) initMap();
+        else switchToUnlabeledMap();
 
-        const loadData = async () => {
-            try {
-                const [geoData, countryData] = await Promise.all([
-                    fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json').then(res => res.json()),
-                    fetch('https://restcountries.com/v3.1/all?fields=name,translations,cca3,region,capital,population,flags').then(res => res.json())
-                ]);
-                geoJSONFeatures = geoData.features;
-                allCountriesData = countryData
-                    .filter(c => geoJSONFeatures.some(f => f.id === c.cca3) && c.capital && c.capital.length > 0)
-                    .map(c => ({
-                        code: c.cca3, commonName: c.name.common, frenchName: c.translations.fra.common,
-                        region: c.region, capital: c.capital[0], population: c.population, flagUrl: c.flags.svg
-                    }));
-                isDataReady = true;
-                startGameBtn.disabled = false;
-                startGameBtn.textContent = 'Lancer la partie';
-            } catch (e) {
-                startGameBtn.textContent = 'Erreur de chargement';
-                alert("Erreur de chargement des données. Veuillez rafraîchir la page.");
-            }
-        };
+        setTimeout(() => map.invalidateSize(), 10);
 
-        // --- Game Flow ---
-        const startGame = () => {
-            if (!isDataReady) return;
-            
-            const settings = {
-                mode: document.getElementById('game-mode').value,
-                difficulty: document.getElementById('game-difficulty').value,
-                type: document.getElementById('game-type').value,
-            };
-            gameState = { ...gameState, ...settings, targetCountry: null };
+        if (gameState.mode === 'Monde') currentGameCountries = allCountriesData;
+        else currentGameCountries = allCountriesData.filter(c => c.region === gameState.mode);
 
-            gameZone.classList.remove('hidden');
-            startModal.classList.remove('visible');
-            
-            if (!map) initMap();
-            else switchToUnlabeledMap();
+        resetGame();
+        
+        const modeInFrench = continentTranslations[gameState.mode] || gameState.mode;
+        document.getElementById('game-description').textContent = `${modeInFrench} - ${gameState.difficulty} - ${gameState.type === 'Type' ? 'Classique' : 'Cliquez pour deviner'}`;
+        
+        const countryCodesInGame = new Set(currentGameCountries.map(c => c.code));
+        const gameGeoJSON = { type: "FeatureCollection", features: geoJSONFeatures.filter(f => countryCodesInGame.has(f.id)) };
 
-            setTimeout(() => map.invalidateSize(), 10);
-
-            if (gameState.mode === 'Monde') currentGameCountries = allCountriesData;
-            else currentGameCountries = allCountriesData.filter(c => c.region === gameState.mode);
-
-            resetGame();
-            
-            const modeInFrench = continentTranslations[gameState.mode] || gameState.mode;
-            document.getElementById('game-description').textContent = `${modeInFrench} - ${gameState.difficulty} - ${gameState.type === 'Type' ? 'Classique' : 'Cliquez pour deviner'}`;
-            
-            const countryCodesInGame = new Set(currentGameCountries.map(c => c.code));
-            const gameGeoJSON = { type: "FeatureCollection", features: geoJSONFeatures.filter(f => countryCodesInGame.has(f.id)) };
-
-            geojsonLayer = L.geoJSON(gameGeoJSON, { style: getCountryStyle, onEachFeature }).addTo(map);
-            if(gameGeoJSON.features.length > 0) map.fitBounds(geojsonLayer.getBounds().pad(0.1));
-            
-            if (gameState.type === 'Click') {
-                countryInput.classList.add('hidden');
-                targetCountryPrompt.classList.remove('hidden');
-                pickNextTarget();
-            } else {
-                countryInput.classList.remove('hidden');
-                targetCountryPrompt.classList.add('hidden');
-                countryInput.placeholder = "Entrez le nom d'un pays...";
-            }
-        };
-        const resetGame = () => { stopTimer(); secondsElapsed = 0; guessedCountries.clear(); countryInput.disabled = false; countryInput.value=''; abandonBtn.disabled = false; hintBtn.disabled = false; if (geojsonLayer) geojsonLayer.remove(); updateUI(); countryInput.focus(); };
-        const endGame = (abandoned = false) => { 
-            stopTimer(); 
-            countryInput.disabled = true; 
+        geojsonLayer = L.geoJSON(gameGeoJSON, { style: getCountryStyle, onEachFeature }).addTo(map);
+        if(gameGeoJSON.features.length > 0) map.fitBounds(geojsonLayer.getBounds().pad(0.1));
+        
+        if (gameState.type === 'Click') {
             countryInput.classList.add('hidden');
+            targetCountryPrompt.classList.remove('hidden');
+            pickNextTarget();
+        } else {
+            countryInput.classList.remove('hidden');
             targetCountryPrompt.classList.add('hidden');
-            if (!abandoned) { 
-                playSound('win'); 
-                if (window.confetti) confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
-                document.getElementById('final-time').textContent = formatTime(secondsElapsed); 
-                endGameModal.classList.add('visible'); 
-                saveStats(); 
-            }
-            updateGuessedList();
-            switchToLabeledMap();
-        };
-        
-        // --- Game Logic ---
-        const normalize = (str) => {
-            return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s*\(.*\)\s*/g, '').replace(/-/g, " ").trim();
-        };
-        const processCorrectGuess = (country) => {
-            playSound('correct');
-            if (gameState.type === 'Type') flashInput('correct-guess');
-            guessedCountries.add(country.commonName);
-            if (guessedCountries.size === 1) startTimer();
-            updateOnGuess(country);
-            countryInput.value = '';
-            if (gameState.type === 'Click') pickNextTarget();
-        };
-        const handleAutoValidation = () => {
+            countryInput.placeholder = "Entrez le nom d'un pays...";
+        }
+    };
+    const resetGame = () => {
+        stopTimer();
+        secondsElapsed = 0;
+        guessedCountries.clear();
+        countryInput.disabled = false;
+        countryInput.value = '';
+        abandonBtn.disabled = false;
+        hintBtn.disabled = false;
+        if (geojsonLayer) geojsonLayer.remove();
+        if (timerInfo) timerInfo.classList.remove('is-hidden'); // --- MODIFICATION JS ---
+        updateUI();
+        countryInput.focus();
+    };
+    const endGame = (abandoned = false) => { 
+        stopTimer(); 
+        countryInput.disabled = true; 
+        countryInput.classList.add('hidden');
+        targetCountryPrompt.classList.add('hidden');
+        if (!abandoned) { 
+            playSound('win'); 
+            if (window.confetti) confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+            document.getElementById('final-time').textContent = formatTime(secondsElapsed); 
+            endGameModal.classList.add('visible'); 
+            saveStats(); 
+        }
+        updateGuessedList();
+        switchToLabeledMap();
+    };
+    
+    // --- Game Logic ---
+    const normalize = (str) => {
+        return str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s*\(.*\)\s*/g, '').replace(/-/g, " ").trim();
+    };
+    const processCorrectGuess = (country) => {
+        playSound('correct');
+        if (gameState.type === 'Type') flashInput('correct-guess');
+        guessedCountries.add(country.commonName);
+        if (guessedCountries.size === 1) startTimer();
+        updateOnGuess(country);
+        countryInput.value = '';
+        if (gameState.type === 'Click') pickNextTarget();
+    };
+    const handleAutoValidation = () => {
+        if (gameState.type !== 'Type') return;
+        const guessedName = countryInput.value;
+        if (!guessedName) return;
+        const targetName = normalize(guessedName).replace(/\s/g, '');
+        const country = currentGameCountries.find(c => normalize(c.frenchName).replace(/\s/g, '') === targetName);
+        if (country && !guessedCountries.has(country.commonName)) {
+            processCorrectGuess(country);
+        }
+    };
+    const handleEnterPress = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
             if (gameState.type !== 'Type') return;
             const guessedName = countryInput.value;
             if (!guessedName) return;
             const targetName = normalize(guessedName).replace(/\s/g, '');
             const country = currentGameCountries.find(c => normalize(c.frenchName).replace(/\s/g, '') === targetName);
-            if (country && !guessedCountries.has(country.commonName)) {
-                processCorrectGuess(country);
+            if (!country || guessedCountries.has(country.commonName)) {
+                playSound('wrong');
+                flashInput('wrong-guess');
             }
-        };
-        const handleEnterPress = (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                if (gameState.type !== 'Type') return;
-                const guessedName = countryInput.value;
-                if (!guessedName) return;
-                const targetName = normalize(guessedName).replace(/\s/g, '');
-                const country = currentGameCountries.find(c => normalize(c.frenchName).replace(/\s/g, '') === targetName);
-                if (!country || guessedCountries.has(country.commonName)) {
-                    playSound('wrong');
-                    flashInput('wrong-guess');
-                }
+        }
+    };
+    const pickNextTarget = () => {
+        const unguessed = currentGameCountries.filter(c => !guessedCountries.has(c.commonName));
+        if (unguessed.length > 0) {
+            gameState.targetCountry = unguessed[Math.floor(Math.random() * unguessed.length)];
+            targetCountryPrompt.innerHTML = `Cliquez sur : <strong>${gameState.targetCountry.frenchName}</strong>`;
+        } else { 
+            gameState.targetCountry = null; 
+            endGame(); 
+        }
+    };
+    const updateOnGuess = (country) => { updateUI(); if (guessedCountries.size === currentGameCountries.length) endGame(); };
+    const giveHint = () => { 
+        let countryToReveal = null;
+        if (gameState.type === 'Click') {
+            if (gameState.targetCountry) {
+                countryToReveal = gameState.targetCountry;
             }
-        };
-        const pickNextTarget = () => {
-            const unguessed = currentGameCountries.filter(c => !guessedCountries.has(c.commonName));
-            if (unguessed.length > 0) {
-                gameState.targetCountry = unguessed[Math.floor(Math.random() * unguessed.length)];
-                targetCountryPrompt.innerHTML = `Cliquez sur : <strong>${gameState.targetCountry.frenchName}</strong>`;
-            } else { 
-                gameState.targetCountry = null; 
-                endGame(); 
+        } else {
+            const unguessed = currentGameCountries.filter(c => !guessedCountries.has(c.commonName)); 
+            if (unguessed.length > 0) { 
+                countryToReveal = unguessed[Math.floor(Math.random() * unguessed.length)]; 
             }
-        };
-        const updateOnGuess = (country) => { updateUI(); if (guessedCountries.size === currentGameCountries.length) endGame(); };
-        const giveHint = () => { 
-            let countryToReveal = null;
-            if (gameState.type === 'Click') {
-                if (gameState.targetCountry) {
-                    countryToReveal = gameState.targetCountry;
-                }
-            } else {
-                const unguessed = currentGameCountries.filter(c => !guessedCountries.has(c.commonName)); 
-                if (unguessed.length > 0) { 
-                    countryToReveal = unguessed[Math.floor(Math.random() * unguessed.length)]; 
-                }
-            }
-            if (countryToReveal) {
-                processCorrectGuess(countryToReveal);
-                secondsElapsed += 30;
-            }
-            hintBtn.disabled = (currentGameCountries.length - guessedCountries.size) <= 1;
-        };
-        const giveUp = () => { 
-            endGame(true);
-            geojsonLayer.setStyle(getCountryStyle); 
-        };
+        }
+        if (countryToReveal) {
+            processCorrectGuess(countryToReveal);
+            secondsElapsed += 30;
+        }
+        hintBtn.disabled = (currentGameCountries.length - guessedCountries.size) <= 1;
+    };
+    const giveUp = () => { 
+        endGame(true);
+        geojsonLayer.setStyle(getCountryStyle); 
+    };
+    
+    // --- UI & Map ---
+    const switchToLabeledMap = () => {
+        if (!tileLayer) return;
+        const newUrl = document.body.classList.contains('dark-mode')
+            ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+            : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        tileLayer.setUrl(newUrl);
+    };
+    const switchToUnlabeledMap = () => {
+        const url = document.body.classList.contains('dark-mode')
+            ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
+            : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+        if (!tileLayer) {
+            tileLayer = L.tileLayer(url, { attribution: '&copy; OpenStreetMap &copy; CARTO' }).addTo(map);
+        } else {
+            tileLayer.setUrl(url);
+        }
+    };
+    const onEachFeature = (feature, layer) => layer.on({ click: onCountryClick });
+    const onCountryClick = (e) => {
+        const clickedCountry = allCountriesData.find(c => c.code === e.target.feature.id);
+        if (!clickedCountry) return;
         
-        // --- UI & Map ---
-        const switchToLabeledMap = () => {
-            if (!tileLayer) return;
-            const newUrl = document.body.classList.contains('dark-mode')
-                ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-            tileLayer.setUrl(newUrl);
-        };
-        const switchToUnlabeledMap = () => {
-            const url = document.body.classList.contains('dark-mode')
-                ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
-                : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
-            if (!tileLayer) {
-                tileLayer = L.tileLayer(url, { attribution: '&copy; OpenStreetMap &copy; CARTO' }).addTo(map);
-            } else {
-                tileLayer.setUrl(url);
-            }
-        };
-        const onEachFeature = (feature, layer) => layer.on({ click: onCountryClick });
-        const onCountryClick = (e) => {
-            const clickedCountry = allCountriesData.find(c => c.code === e.target.feature.id);
-            if (!clickedCountry) return;
-            
-            const isGameOver = countryInput.disabled;
+        const isGameOver = countryInput.disabled;
 
-            if (gameState.type === 'Click') {
-                if (isGameOver) return;
-                if (gameState.targetCountry && clickedCountry.code === gameState.targetCountry.code) {
-                    if (!guessedCountries.has(clickedCountry.commonName)) {
-                        processCorrectGuess(clickedCountry);
-                    }
-                } else {
-                    playSound('wrong');
-                    flashCountry(e.target, 'red');
+        if (gameState.type === 'Click') {
+            if (isGameOver) return;
+            if (gameState.targetCountry && clickedCountry.code === gameState.targetCountry.code) {
+                if (!guessedCountries.has(clickedCountry.commonName)) {
+                    processCorrectGuess(clickedCountry);
                 }
-            } else { 
-                if (guessedCountries.has(clickedCountry.commonName) || isGameOver) {
-                    showCountryInfo(clickedCountry);
-                }
-            }
-        };
-        const updateUI = () => { 
-            scoreElement.textContent = `${guessedCountries.size} / ${currentGameCountries.length}`; 
-            if (gameState.difficulty === 'Difficile') {
-                const timeRemaining = (15 * 60) - secondsElapsed;
-                timerElement.textContent = formatTime(Math.max(0, timeRemaining));
             } else {
-                timerElement.textContent = formatTime(secondsElapsed);
+                playSound('wrong');
+                flashCountry(e.target, 'red');
             }
-            if (geojsonLayer) geojsonLayer.setStyle(getCountryStyle); 
-            updateGuessedList(); 
-            hintBtn.disabled = (currentGameCountries.length - guessedCountries.size) <= 1;
-        };
-        
-        const updateGuessedList = () => {
-            const isGameOver = countryInput.disabled;
-            const sourceList = isGameOver ? currentGameCountries : currentGameCountries.filter(c => guessedCountries.has(c.commonName));
+        } else { 
+            if (guessedCountries.has(clickedCountry.commonName) || isGameOver) {
+                showCountryInfo(clickedCountry);
+            }
+        }
+    };
+    const updateUI = () => { 
+        scoreElement.textContent = `${guessedCountries.size} / ${currentGameCountries.length}`; 
+        if (gameState.difficulty === 'Difficile') {
+            const timeRemaining = (15 * 60) - secondsElapsed;
+            timerElement.textContent = formatTime(Math.max(0, timeRemaining));
+        } else {
+            timerElement.textContent = formatTime(secondsElapsed);
+        }
+        if (geojsonLayer) geojsonLayer.setStyle(getCountryStyle); 
+        updateGuessedList(); 
+        hintBtn.disabled = (currentGameCountries.length - guessedCountries.size) <= 1;
+    };
+    
+    const updateGuessedList = () => {
+        const isGameOver = countryInput.disabled;
+        const sourceList = isGameOver ? currentGameCountries : currentGameCountries.filter(c => guessedCountries.has(c.commonName));
 
-            const continents = {};
-            sourceList.forEach(country => {
-                const region = continentTranslations[country.region] || 'Autre';
-                if (!continents[region]) continents[region] = [];
-                continents[region].push({
-                    name: country.frenchName,
-                    found: guessedCountries.has(country.commonName)
+        const continents = {};
+        sourceList.forEach(country => {
+            const region = continentTranslations[country.region] || 'Autre';
+            if (!continents[region]) continents[region] = [];
+            continents[region].push({
+                name: country.frenchName,
+                found: guessedCountries.has(country.commonName)
+            });
+        });
+
+        const sortedContinents = Object.keys(continents).sort();
+        let html = '';
+        sortedContinents.forEach(continentName => {
+            if (continents[continentName].length > 0) {
+                html += `<h3>${continentName}</h3>`;
+                const sortedCountries = continents[continentName].sort((a,b) => a.name.localeCompare(b.name));
+                sortedCountries.forEach(item => {
+                    const className = isGameOver ? (item.found ? 'found-country-final' : 'missed-country-final') : '';
+                    html += `<li class="${className}" data-name="${item.name}">${item.name}</li>`;
                 });
-            });
-
-            const sortedContinents = Object.keys(continents).sort();
-            let html = '';
-            let lastFoundElement = null;
-            sortedContinents.forEach(continentName => {
-                if (continents[continentName].length > 0) {
-                    const continentId = `continent-${continentName.replace(/\s/g, '-')}`;
-                    html += `<h3 id="${continentId}">${continentName}</h3>`;
-                    const sortedCountries = continents[continentName].sort((a,b) => a.name.localeCompare(b.name));
-                    sortedCountries.forEach(item => {
-                        const className = isGameOver ? (item.found ? 'found-country-final' : 'missed-country-final') : '';
-                        html += `<li class="${className}" data-name="${item.name}">${item.name}</li>`;
-                        if (item.found) {
-                            lastFoundElement = continentId;
-                        }
-                    });
-                }
-            });
-            guessedList.innerHTML = html;
-            if (lastFoundElement && !isGameOver) {
-                document.getElementById(lastFoundElement)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        };
-
-        const showCountryInfo = (country) => { infoModalContent.innerHTML = `<h2><img src="${country.flagUrl}" alt="Drapeau" style="vertical-align: middle; margin-right: 15px;"> ${country.frenchName}</h2><p><strong>Capitale :</strong> ${country.capital}</p><p><strong>Population :</strong> ${country.population.toLocaleString('fr-FR')}</p><button onclick="document.getElementById('country-info-modal').classList.remove('visible')">Fermer</button>`; infoModal.classList.add('visible'); };
-        const getCountryStyle = (feature) => {
-            const country = allCountriesData.find(c => c.code === feature.id);
-            if (!country) return { fillColor: '#888', weight: 1, color: '#fff', fillOpacity: 0.5 };
-            if (countryInput.disabled && !guessedCountries.has(country.commonName)) return { fillColor: '#dc3545', weight: 1, color: '#fff', fillOpacity: 0.8 };
-            if (guessedCountries.has(country.commonName)) return { fillColor: '#28a745', weight: 1, color: '#fff', fillOpacity: 0.8 };
-            return { fillColor: '#6c757d', weight: 1, color: '#fff', fillOpacity: 0.7 };
-        };
-        const flashInput = (className) => { countryInput.classList.add(className); setTimeout(() => countryInput.classList.remove(className), 500); };
-        const flashCountry = (layer, color) => {
-            const originalStyle = getCountryStyle(layer.feature);
-            const flashColor = color === 'red' ? '#dc3545' : '#ffc107';
-            layer.setStyle({ fillColor: flashColor, fillOpacity: 0.9 });
-            setTimeout(() => { layer.setStyle(originalStyle) }, 400);
-        };
-        
-        // --- Timer, Stats, Theme ---
-        const startTimer = () => { 
-            const limit = gameState.difficulty === 'Difficile' ? 15 * 60 : Infinity; 
-            stopTimer(); 
-            timerInterval = setInterval(() => { 
-                secondsElapsed++; 
-                updateUI(); 
-                if (gameState.difficulty === 'Difficile' && secondsElapsed >= limit) { 
-                    alert("Temps écoulé !"); 
-                    giveUp(); 
-                } 
-            }, 1000); 
-        };
-        const stopTimer = () => clearInterval(timerInterval);
-        const formatTime = s => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
-        const saveStats = () => { const key = `${gameState.mode}_${gameState.difficulty}_${gameState.type}`; if (!userStats[key] || secondsElapsed < userStats[key]) { userStats[key] = secondsElapsed; localStorage.setItem('worldleUserStats', JSON.stringify(userStats)); } };
-        const loadStats = () => { userStats = JSON.parse(localStorage.getItem('worldleUserStats')) || {}; };
-        const displayStats = () => { const tableBody = document.querySelector("#stats-content tbody"); const statsHtml = Object.entries(userStats).map(([key, time]) => { const [mode, diff, type] = key.split('_'); return `<tr><td>${continentTranslations[mode] || mode} (${diff}, ${type})</td><td>${formatTime(time)}</td></tr>`; }).join(''); tableBody.innerHTML = statsHtml || `<tr><td colspan="2">Aucune partie terminée.</td></tr>`; };
-        const toggleTheme = () => {
-            document.body.classList.toggle('dark-mode');
-            themeToggleBtn.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
-            localStorage.setItem('worldleTheme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
-            if (countryInput.disabled) {
-                 switchToLabeledMap();
-            } else {
-                switchToUnlabeledMap();
-            }
-        };
-
-        // --- Modals Logic ---
-        let confirmCallback = null;
-        const showConfirmModal = (message, callback) => {
-            confirmMessage.textContent = message;
-            confirmCallback = callback;
-            confirmModal.classList.add('visible');
-        };
-        confirmBtn.addEventListener('click', () => {
-            if (confirmCallback) confirmCallback();
-            confirmModal.classList.remove('visible');
-        });
-        cancelBtn.addEventListener('click', () => {
-            confirmModal.classList.remove('visible');
-        });
-
-        // --- Event Listeners ---
-        themeToggleBtn.addEventListener('click', toggleTheme);
-        startGameBtn.addEventListener('click', startGame);
-        
-        resetBtn.addEventListener('click', () => {
-            const isGameInProgress = guessedCountries.size > 0 || (gameState.difficulty === 'Difficile' && secondsElapsed > 0);
-            const openStartModal = () => {
-                gameZone.classList.add('hidden');
-                startModal.classList.add('visible');
-            };
-            if (isGameInProgress && !countryInput.disabled) {
-                showConfirmModal("Votre progression sera perdue. Voulez-vous vraiment commencer une nouvelle partie ?", openStartModal);
-            } else {
-                openStartModal();
             }
         });
+        guessedList.innerHTML = html;
+        // SUPPRESSION du bloc scrollIntoView qui causait le problème
+    };
 
-        playAgainBtn.addEventListener('click', () => { 
-            endGameModal.classList.remove('visible'); 
-            startModal.classList.add('visible'); 
-        });
-        hintBtn.addEventListener('click', giveHint);
-        abandonBtn.addEventListener('click', () => showConfirmModal("Voulez-vous abandonner ? Les pays manquants seront révélés.", giveUp));
-        countryInput.addEventListener('input', handleAutoValidation);
-        countryInput.addEventListener('keydown', handleEnterPress);
-        document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', e => {
-            document.querySelector('.tab.active').classList.remove('active');
-            e.target.classList.add('active');
-            document.getElementById('settings-content').classList.toggle('hidden', e.target.dataset.tab !== 'settings');
-            document.getElementById('stats-content').classList.toggle('hidden', e.target.dataset.tab !== 'stats');
-            if (e.target.dataset.tab === 'stats') displayStats();
-        }));
-        infoModal.addEventListener('click', (e) => { if (e.target === infoModal) infoModal.classList.remove('visible'); });
-        guessedList.addEventListener('click', e => { if (e.target.tagName === 'LI') { const country = allCountriesData.find(c => c.frenchName === e.target.dataset.name); if (country) showCountryInfo(country); } });
-        
-        // --- Final Initialization ---
-        (async () => {
-            const savedTheme = localStorage.getItem('worldleTheme');
-            if (savedTheme === 'dark') document.body.classList.add('dark-mode');
-            themeToggleBtn.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
-            loadStats();
-            await loadData();
-        })();
+    const showCountryInfo = (country) => { infoModalContent.innerHTML = `<h2><img src="${country.flagUrl}" alt="Drapeau" style="vertical-align: middle; margin-right: 15px;"> ${country.frenchName}</h2><p><strong>Capitale :</strong> ${country.capital}</p><p><strong>Population :</strong> ${country.population.toLocaleString('fr-FR')}</p><button onclick="document.getElementById('country-info-modal').classList.remove('visible')">Fermer</button>`; infoModal.classList.add('visible'); };
+    const getCountryStyle = (feature) => {
+        const country = allCountriesData.find(c => c.code === feature.id);
+        if (!country) return { fillColor: '#888', weight: 1, color: '#fff', fillOpacity: 0.5 };
+        if (countryInput.disabled && !guessedCountries.has(country.commonName)) return { fillColor: '#dc3545', weight: 1, color: '#fff', fillOpacity: 0.8 };
+        if (guessedCountries.has(country.commonName)) return { fillColor: '#28a745', weight: 1, color: '#fff', fillOpacity: 0.8 };
+        return { fillColor: '#6c757d', weight: 1, color: '#fff', fillOpacity: 0.7 };
+    };
+    const flashInput = (className) => { countryInput.classList.add(className); setTimeout(() => countryInput.classList.remove(className), 500); };
+    const flashCountry = (layer, color) => {
+        const originalStyle = getCountryStyle(layer.feature);
+        const flashColor = color === 'red' ? '#dc3545' : '#ffc107';
+        layer.setStyle({ fillColor: flashColor, fillOpacity: 0.9 });
+        setTimeout(() => { layer.setStyle(originalStyle) }, 400);
+    };
+    
+    // --- Timer, Stats, Theme ---
+    const startTimer = () => {
+        if (timerInfo) timerInfo.classList.add('is-hidden'); // --- MODIFICATION JS ---
+        const limit = gameState.difficulty === 'Difficile' ? 15 * 60 : Infinity; 
+        stopTimer(); 
+        timerInterval = setInterval(() => { 
+            secondsElapsed++; 
+            updateUI(); 
+            if (gameState.difficulty === 'Difficile' && secondsElapsed >= limit) { 
+                alert("Temps écoulé !"); 
+                giveUp(); 
+            } 
+        }, 1000); 
+    };
+    const stopTimer = () => clearInterval(timerInterval);
+    const formatTime = s => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+    const saveStats = () => { const key = `${gameState.mode}_${gameState.difficulty}_${gameState.type}`; if (!userStats[key] || secondsElapsed < userStats[key]) { userStats[key] = secondsElapsed; localStorage.setItem('worldleUserStats', JSON.stringify(userStats)); } };
+    const loadStats = () => { userStats = JSON.parse(localStorage.getItem('worldleUserStats')) || {}; };
+    const displayStats = () => { const tableBody = document.querySelector("#stats-content tbody"); const statsHtml = Object.entries(userStats).map(([key, time]) => { const [mode, diff, type] = key.split('_'); return `<tr><td>${continentTranslations[mode] || mode} (${diff}, ${type})</td><td>${formatTime(time)}</td></tr>`; }).join(''); tableBody.innerHTML = statsHtml || `<tr><td colspan="2">Aucune partie terminée.</td></tr>`; };
+    const toggleTheme = () => {
+        document.body.classList.toggle('dark-mode');
+        themeToggleBtn.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+        localStorage.setItem('worldleTheme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+        if (countryInput.disabled) {
+             switchToLabeledMap();
+        } else {
+            switchToUnlabeledMap();
+        }
+    };
+
+    // --- Modals & Panel Logic ---
+    let confirmCallback = null;
+    const showConfirmModal = (message, callback) => {
+        confirmMessage.textContent = message;
+        confirmCallback = callback;
+        confirmModal.classList.add('visible');
+    };
+    confirmBtn.addEventListener('click', () => {
+        if (confirmCallback) confirmCallback();
+        confirmModal.classList.remove('visible');
     });
-    </script>
+    cancelBtn.addEventListener('click', () => {
+        confirmModal.classList.remove('visible');
+    });
+
+    const toggleSidePanel = () => {
+        guessedListContainer.classList.toggle('open');
+        panelOverlay.classList.toggle('hidden', !guessedListContainer.classList.contains('open'));
+    };
+
+    // --- Event Listeners ---
+    themeToggleBtn.addEventListener('click', toggleTheme);
+    startGameBtn.addEventListener('click', startGame);
+    
+    resetBtn.addEventListener('click', () => {
+        const isGameInProgress = guessedCountries.size > 0 || (gameState.difficulty === 'Difficile' && secondsElapsed > 0);
+        const openStartModal = () => {
+            gameZone.classList.add('hidden');
+            startModal.classList.add('visible');
+        };
+        if (isGameInProgress && !countryInput.disabled) {
+            showConfirmModal("Votre progression sera perdue. Voulez-vous vraiment commencer une nouvelle partie ?", openStartModal);
+        } else {
+            openStartModal();
+        }
+    });
+
+    playAgainBtn.addEventListener('click', () => { 
+        endGameModal.classList.remove('visible'); 
+        startModal.classList.add('visible'); 
+    });
+    hintBtn.addEventListener('click', giveHint);
+    abandonBtn.addEventListener('click', () => showConfirmModal("Voulez-vous abandonner ? Les pays manquants seront révélés.", giveUp));
+    countryInput.addEventListener('input', handleAutoValidation);
+    countryInput.addEventListener('keydown', handleEnterPress);
+    document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', e => {
+        document.querySelector('.tab.active').classList.remove('active');
+        e.target.classList.add('active');
+        document.getElementById('settings-content').classList.toggle('hidden', e.target.dataset.tab !== 'settings');
+        document.getElementById('stats-content').classList.toggle('hidden', e.target.dataset.tab !== 'stats');
+        if (e.target.dataset.tab === 'stats') displayStats();
+    }));
+    infoModal.addEventListener('click', (e) => { if (e.target === infoModal) infoModal.classList.remove('visible'); });
+    guessedList.addEventListener('click', e => { if (e.target.tagName === 'LI') { const country = allCountriesData.find(c => c.frenchName === e.target.dataset.name); if (country) showCountryInfo(country); } });
+    
+    // Nouveaux écouteurs pour le panneau latéral
+    toggleGuessedListBtn.addEventListener('click', toggleSidePanel);
+    panelOverlay.addEventListener('click', toggleSidePanel);
+
+    // --- Final Initialization ---
+    (async () => {
+        const savedTheme = localStorage.getItem('worldleTheme');
+        if (savedTheme === 'dark') document.body.classList.add('dark-mode');
+        themeToggleBtn.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+        loadStats();
+        await loadData();
+    })();
+});
+</script>
+
 </body>
 </html>
